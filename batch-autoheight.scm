@@ -1,0 +1,30 @@
+(define (batch-autoheight pattern)
+  (let* ((filelist (cadr (file-glob pattern 1))))
+    (let* ((height (max-height filelist)))
+      (while (not (null? filelist))
+        (let* ((filename (car filelist))
+               (image (car (gimp-file-load RUN-NONINTERACTIVE filename filename)))
+               (drawable (car (gimp-image-get-active-layer image)))
+               (cur-width  (car (gimp-image-width image)))
+               (cur-height (car (gimp-image-height image)))
+               (diff (- height cur-height)))
+
+          ; Image -> Canvas Size...
+          (gimp-image-resize image cur-width height 0 diff)
+          ; Layer -> Layer to Image Size
+          (gimp-layer-resize-to-image-size drawable)
+
+          (gimp-file-save RUN-NONINTERACTIVE image drawable filename filename)
+          (gimp-image-delete image))
+      (set! filelist (cdr filelist))))))
+
+(define (max-height filelist)
+  (let * ((mh 0))
+    (while (not (null? filelist))
+      (let* ((filename (car filelist))
+             (image (car (gimp-file-load RUN-NONINTERACTIVE filename filename)))
+             (h (car (gimp-image-height image))))
+        (if (> h mh) (set! mh h))
+        (gimp-image-delete image))
+    (set! filelist (cdr filelist)))
+  mh))
